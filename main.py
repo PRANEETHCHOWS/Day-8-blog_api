@@ -1,10 +1,11 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
-from auth.auth import create_access_token
 from database import Base, engine
+from routers.auth import router as auth_router
 from routers.post import router as post_router
 
 
@@ -21,18 +22,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/health", tags=["health"])
 def health():
     return {"status": "ok"}
 
 
-@app.post("/auth/token", tags=["auth"])
-def issue_token(username: str = Query(..., min_length=1)):
-    token = create_access_token(username=username)
-    return {"access_token": token, "token_type": "bearer"}
-
-
+app.include_router(auth_router)
 app.include_router(post_router)
 
 
